@@ -13,7 +13,7 @@ Trabalho Prático de Engenharia de Software (2026/2).
 
 ## Como rodar localmente
 
-Pré-requisitos: **Node.js 20.9 ou superior** (recomendado 22, veja `.nvmrc`) e Git.
+Pré-requisitos: **Node.js 20.19 ou superior** (recomendado 22, veja `.nvmrc`) e Git.
 
 ```bash
 git clone <url-do-repositorio>
@@ -44,15 +44,20 @@ prisma/
 
 ## Scripts
 
-| Comando                | O que faz                                       |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Sobe o servidor de desenvolvimento              |
-| `npm run build`        | Gera o build de produção                        |
-| `npm run start`        | Roda o build de produção                        |
-| `npm run lint`         | Roda o ESLint (falha com qualquer aviso)        |
-| `npm run lint:fix`     | Corrige automaticamente o que o ESLint consegue |
-| `npm run format`       | Formata todo o projeto com o Prettier           |
-| `npm run format:check` | Só verifica a formatação, sem alterar           |
+| Comando                 | O que faz                                                    |
+| ----------------------- | ------------------------------------------------------------ |
+| `npm run dev`           | Sobe o servidor de desenvolvimento                           |
+| `npm run build`         | Gera o build de produção                                     |
+| `npm run start`         | Roda o build de produção                                     |
+| `npm run lint`          | Roda o ESLint (falha com qualquer aviso)                     |
+| `npm run lint:fix`      | Corrige automaticamente o que o ESLint consegue              |
+| `npm run format`        | Formata todo o projeto com o Prettier                        |
+| `npm run format:check`  | Só verifica a formatação, sem alterar                        |
+| `npm run typecheck`     | Gera os tipos de rota do Next e checa os tipos do TypeScript |
+| `npm run test`          | Roda os testes uma vez (Vitest)                              |
+| `npm run test:watch`    | Roda os testes em modo observação                            |
+| `npm run test:coverage` | Roda os testes e gera a cobertura em `coverage/`             |
+| `npm run db:*`          | Comandos do banco (veja [Banco de dados](#banco-de-dados))   |
 
 ## Banco de dados
 
@@ -80,6 +85,16 @@ Peça as credenciais ao responsável pela infraestrutura (Lucas). Não commite o
 | `transactions` | Extrato: INITIAL_GRANT, BUY, SELL e PAYOUT, com o saldo resultante de cada uma |
 
 Valores de dinheiro e cotas são `Decimal`, nunca `Float`: o LMSR gera custos fracionários e `Float` acumula erro de arredondamento no saldo.
+
+### Primeira configuração (só uma vez, pelo responsável da infra)
+
+1. Criar o projeto no [Neon](https://console.neon.tech/) (Postgres 17, região mais próxima do Brasil disponível).
+2. Em **Connect**, copiar a string **com** "Connection pooling" para `DATABASE_URL` e **sem** para `DIRECT_URL`.
+3. Criar a primeira migration e commitar a pasta `prisma/migrations/`:
+   ```bash
+   npm run db:migrate -- --name init
+   ```
+4. Repassar o `.env` para o grupo por canal privado.
 
 ### Comandos
 
@@ -145,3 +160,70 @@ Enquanto o `SONAR_TOKEN` não existir, o job só emite um aviso e não quebra o 
   - `commit-msg` exige o padrão `PCC-XX: mensagem` (veja [Convenções](#convenções-de-git)).
 
 Dica: no VS Code, instale as extensões **ESLint** e **Prettier** e ative "Format on Save".
+
+## Convenções de Git
+
+Seguimos o **Git Flow** ([referência](https://www.atlassian.com/br/git/tutorials/comparing-workflows/gitflow-workflow)):
+
+| Branch      | Papel                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| `main`      | Versões estáveis (entregas de fim de sprint). Ninguém commita direto. |
+| `develop`   | Integração do que está pronto. Ninguém commita direto.                |
+| `feature/*` | Uma por card do Jira, criada a partir de `develop`                    |
+| `bugfix/*`  | Correção de bug, criada a partir de `develop`                         |
+
+**Nome da branch:** `feature/PCC-XX-descricao-curta` ou `bugfix/PCC-XX-descricao-curta`
+(ex.: `feature/PCC-1-cadastro-email-institucional`).
+
+**Mensagem de commit:** `PCC-XX: mensagem no imperativo` (ex.: `PCC-1: Valida domínio do e-mail institucional`). O hook `commit-msg` recusa mensagens fora do padrão. Prefira commits pequenos e frequentes.
+
+**Pull Request:** um por card do Jira, para `develop`, preenchendo o template. Precisa de **uma aprovação de um colega** e do **CI verde** para entrar. Use os comentários do PR para sugerir melhorias.
+
+### Fluxo de um card, do início ao merge
+
+```bash
+git checkout develop
+git pull
+git checkout -b feature/PCC-12-fechar-mercado
+# ... código + testes ...
+git add .
+git commit -m "PCC-12: Fecha mercado após a data limite"
+git push -u origin feature/PCC-12-fechar-mercado
+# abra o PR para develop no GitHub e peça revisão no grupo
+```
+
+No Jira: mova o card para **Em Progresso** ao criar a branch, para **Em Validação** ao abrir o PR e para **Concluído** depois do merge.
+
+### Proteção de branches (configuração do repositório)
+
+Em _Settings > Branches > Add branch ruleset_ (ou _Branch protection rules_), para `main` e `develop`:
+
+- [x] Require a pull request before merging — _Required approvals: 1_
+- [x] Dismiss stale pull request approvals when new commits are pushed
+- [x] Require status checks to pass — marcar **Lint, testes e build** (aparece depois da primeira execução do CI)
+- [x] Require branches to be up to date before merging
+- [x] Block force pushes
+
+> Em repositório **privado de conta pessoal**, o GitHub só aplica essas regras no plano Pro (gratuito pelo [GitHub Student Developer Pack](https://education.github.com/pack)). No repositório do Classroom, quem configura é quem tem papel de admin no repositório.
+
+### Migração para o repositório do GitHub Classroom
+
+O projeto começou num repositório pessoal. Quando o repositório do Classroom for criado, todo o histórico (commits, autores, datas e branches) vai junto:
+
+```bash
+git remote rename origin pessoal
+git remote add origin <url-do-repositorio-do-classroom>
+git fetch origin
+
+# O Classroom cria o repositório com um commit inicial próprio. Escolha UMA opção:
+# (a) substituir esse commit inicial (main ainda sem proteção):
+git push --force origin main
+# (b) ou preservar o commit do Classroom:
+#     git checkout main && git merge origin/main --allow-unrelated-histories && git push origin main
+
+git push origin develop
+git push origin --all     # demais branches
+git push origin --tags
+```
+
+Pull Requests, revisões, execuções do Actions e o vínculo com o SonarCloud **não** são migrados (ficam no GitHub, não no git): abra os PRs, configure os secrets e a proteção de branches já no repositório do Classroom.
