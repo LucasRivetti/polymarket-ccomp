@@ -34,9 +34,22 @@ src/
 
 ## Scripts
 
-| Comando         | O que faz                         |
-| --------------- | --------------------------------- |
-| `npm run dev`   | Sobe o servidor de desenvolvimento |
-| `npm run build` | Gera o build de produção          |
-| `npm run start` | Roda o build de produção          |
-| `npm run lint`  | Roda o ESLint                     |
+| Comando                | O que faz                                       |
+| ---------------------- | ----------------------------------------------- |
+| `npm run dev`          | Sobe o servidor de desenvolvimento              |
+| `npm run build`        | Gera o build de produção                        |
+| `npm run start`        | Roda o build de produção                        |
+| `npm run lint`         | Roda o ESLint (falha com qualquer aviso)        |
+| `npm run lint:fix`     | Corrige automaticamente o que o ESLint consegue |
+| `npm run format`       | Formata todo o projeto com o Prettier           |
+| `npm run format:check` | Só verifica a formatação, sem alterar           |
+
+## Lint, formatação e hooks de commit
+
+- **ESLint** (`eslint.config.mjs`): regras do Next.js + TypeScript. Regras de estilo ficam com o Prettier (`eslint-config-prettier`).
+- **Prettier** (`.prettierrc.json`): formatação única para todo mundo, com ordenação automática das classes do Tailwind.
+- **Husky** instala os hooks sozinho no `npm install`:
+  - `pre-commit` roda o `lint-staged`: ESLint + Prettier **só nos arquivos do commit**. Se o ESLint achar erro ou aviso, o commit é bloqueado.
+  - `commit-msg` exige o padrão `PCC-XX: mensagem` (veja [Convenções](#convenções-de-git)).
+
+Dica: no VS Code, instale as extensões **ESLint** e **Prettier** e ative "Format on Save".
