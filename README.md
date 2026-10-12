@@ -44,6 +44,15 @@ src/
 | `npm run format`       | Formata todo o projeto com o Prettier           |
 | `npm run format:check` | Só verifica a formatação, sem alterar           |
 
+## Testes
+
+[Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/docs/react-testing-library/intro/).
+
+- O arquivo de teste fica **ao lado** do código testado, com o sufixo `.test.ts` ou `.test.tsx` (ex.: `page.tsx` → `page.test.tsx`).
+- O ambiente padrão é `jsdom` (simula o navegador). Para testar services e rotas da API, coloque `// @vitest-environment node` na primeira linha do arquivo.
+- `describe`, `it` e `expect` são globais; os matchers do `jest-dom` (`toBeInTheDocument` etc.) já vêm carregados em `vitest.setup.ts`.
+- Exemplos: `src/app/page.test.tsx` (componente) e `src/app/api/health/route.test.ts` (rota da API).
+
 ## Lint, formatação e hooks de commit
 
 - **ESLint** (`eslint.config.mjs`): regras do Next.js + TypeScript. Regras de estilo ficam com o Prettier (`eslint-config-prettier`).
