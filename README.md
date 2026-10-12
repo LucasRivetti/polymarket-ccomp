@@ -118,6 +118,24 @@ Se qualquer passo falhar, o check **Lint, testes e build** fica vermelho e a pro
 npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build
 ```
 
+## Análise estática (SonarCloud)
+
+<!-- Depois de configurar o SonarCloud, descomente e troque CHAVE_DO_PROJETO:
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=CHAVE_DO_PROJETO&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CHAVE_DO_PROJETO)
+-->
+
+Depois do CI passar, o job **SonarCloud** envia o código e a cobertura dos testes para o [SonarCloud](https://sonarcloud.io/), que comenta o resultado (bugs, vulnerabilidades, code smells, duplicação e cobertura) em cada Pull Request.
+
+Configuração (uma vez, feita pelo responsável da infra):
+
+1. Entrar em sonarcloud.io com o GitHub e importar o repositório.
+2. Em _Administration > Analysis Method_, **desligar** a "Automatic Analysis" (a análise roda pelo GitHub Actions).
+3. Copiar `organization` e `projectKey` para o `sonar-project.properties`.
+4. Gerar um token em _My Account > Security_ e salvar no GitHub em _Settings > Secrets and variables > Actions_ com o nome `SONAR_TOKEN`.
+5. Descomentar o badge acima.
+
+Enquanto o `SONAR_TOKEN` não existir, o job só emite um aviso e não quebra o pipeline.
+
 ## Lint, formatação e hooks de commit
 
 - **ESLint** (`eslint.config.mjs`): regras do Next.js + TypeScript. Regras de estilo ficam com o Prettier (`eslint-config-prettier`).

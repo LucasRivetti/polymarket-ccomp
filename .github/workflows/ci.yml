@@ -44,3 +44,37 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Guardar relatório de cobertura
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          retention-days: 7
+
+  sonarcloud:
+    name: SonarCloud
+    needs: ci
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Aviso de configuração pendente
+        if: env.SONAR_TOKEN == ''
+        run: echo "::warning::Secret SONAR_TOKEN não configurado; análise do SonarCloud ignorada. Veja o README."
+
+      - uses: actions/checkout@v7
+        if: env.SONAR_TOKEN != ''
+        with:
+          # Histórico completo: o Sonar usa o git blame para saber o que é código novo
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        if: env.SONAR_TOKEN != ''
+        with:
+          name: coverage
+          path: coverage
+
+      - name: Análise do SonarCloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
