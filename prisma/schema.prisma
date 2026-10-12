@@ -1,0 +1,139 @@
+// Schema do Polymarket CCOMP
+// Docs: https://www.prisma.io/docs/orm/prisma-schema
+//
+// Valores monetários e cotas usam Decimal: o LMSR gera custos fracionários
+// e ponto flutuante (Float) acumula erro de arredondamento no saldo.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MarketStatus {
+  OPEN
+  CLOSED
+  RESOLVED
+}
+
+/// Lado de uma aposta e resultado de um mercado
+enum Outcome {
+  YES
+  NO
+}
+
+enum TransactionType {
+  INITIAL_GRANT
+  BUY
+  SELL
+  PAYOUT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  wallet         Wallet?
+  positions      Position[]
+  createdMarkets Market[]   @relation("MarketCreator")
+
+  @@map("users")
+}
+
+/// Carteira de moedas virtuais. Uma por usuário.
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  balance   Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Market {
+  id                 String       @id @default(cuid())
+  question           String
+  description        String
+  resolutionCriteria String       @map("resolution_criteria")
+  category           String
+  closesAt           DateTime     @map("closes_at")
+  status             MarketStatus @default(OPEN)
+
+  /// Parâmetro de liquidez "b" do LMSR: quanto maior, menos o preço se move por cota
+  liquidity Decimal @default(100) @db.Decimal(18, 4)
+  /// Total de cotas SIM e NÃO em circulação. Iguais => probabilidade de 50%
+  yesShares Decimal @default(0) @map("yes_shares") @db.Decimal(18, 4)
+  noShares  Decimal @default(0) @map("no_shares") @db.Decimal(18, 4)
+
+  outcome            Outcome?
+  resolutionEvidence String?   @map("resolution_evidence")
+  resolvedAt         DateTime? @map("resolved_at")
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy    User          @relation("MarketCreator", fields: [createdById], references: [id])
+  positions    Position[]
+  transactions Transaction[]
+
+  @@index([status, closesAt])
+  @@map("markets")
+}
+
+/// Cotas que um usuário possui de um lado (SIM ou NÃO) de um mercado
+model Position {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  marketId  String   @map("market_id")
+  side      Outcome
+  shares    Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, marketId, side])
+  @@index([marketId])
+  @@map("positions")
+}
+
+/// Extrato: toda movimentação de saldo gera uma linha. A soma de `amount` de uma
+/// carteira é igual ao `balance` dela.
+model Transaction {
+  id           String          @id @default(cuid())
+  walletId     String          @map("wallet_id")
+  type         TransactionType
+  /// Positivo = crédito, negativo = débito
+  amount       Decimal         @db.Decimal(18, 4)
+  balanceAfter Decimal         @map("balance_after") @db.Decimal(18, 4)
+  marketId     String?         @map("market_id")
+  side         Outcome?
+  shares       Decimal?        @db.Decimal(18, 4)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  wallet Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  market Market? @relation(fields: [marketId], references: [id])
+
+  @@index([walletId, createdAt(sort: Desc)])
+  @@index([marketId])
+  @@map("transactions")
+}
