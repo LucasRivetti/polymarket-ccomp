@@ -101,6 +101,23 @@ Alterou o `schema.prisma`? Rode `npm run db:migrate -- --name descricao-curta` e
 - `describe`, `it` e `expect` são globais; os matchers do `jest-dom` (`toBeInTheDocument` etc.) já vêm carregados em `vitest.setup.ts`.
 - Exemplos: `src/app/page.test.tsx` (componente) e `src/app/api/health/route.test.ts` (rota da API).
 
+## Integração contínua (GitHub Actions)
+
+O workflow `.github/workflows/ci.yml` roda em todo Pull Request para `develop` ou `main` (e em todo push nelas):
+
+1. `npm ci`
+2. `npm run lint`
+3. `npm run format:check`
+4. `npm run typecheck`
+5. `npm run test:coverage`
+6. `npm run build`
+
+Se qualquer passo falhar, o check **Lint, testes e build** fica vermelho e a proteção de branch impede o merge. Antes de abrir o PR, rode o mesmo localmente:
+
+```bash
+npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build
+```
+
 ## Lint, formatação e hooks de commit
 
 - **ESLint** (`eslint.config.mjs`): regras do Next.js + TypeScript. Regras de estilo ficam com o Prettier (`eslint-config-prettier`).
